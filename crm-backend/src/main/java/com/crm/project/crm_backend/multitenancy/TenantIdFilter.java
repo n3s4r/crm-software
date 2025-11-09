@@ -4,59 +4,79 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.UUID; // <-- IMPORT UUID
 
 /**
- * TenantIdFilter: Extracts the Tenant ID and sets it in the TenantContext.
- *
- * This runs at the beginning of every request to ensure the tenant ID is set
- * before any business logic or database access occurs.
+ * Spring Web Filter that intercepts every request to extract the 'X-Tenant-ID' header.
+ * It then sets the tenant ID in the TenantContext for the current thread.
+ * * This version is updated to parse and set a UUID.
  */
 @Component
-@Order(1) // Ensure this runs very early in the filter chain
 public class TenantIdFilter extends OncePerRequestFilter {
 
-    private static final String TENANT_HEADER = "X-Tenant-ID";
-
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain)
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        try {
-            // --- STEP 1: Extract Tenant ID ---
-            String tenantIdStr = request.getHeader(TENANT_HEADER);
+        // --- STEP 1: Extract Tenant ID from Request Header ---
+        String tenantIdStr = request.getHeader("X-Tenant-ID");
 
-            if (tenantIdStr != null && !tenantIdStr.isEmpty()) {
-                try {
-                    Long tenantId = Long.parseLong(tenantIdStr);
-                    // --- STEP 2: Store in Thread-Local Context ---
-                    TenantContext.setTenantId(tenantId);
-                    System.out.println("Set Tenant ID for request: " + tenantId); // Debugging
-                } catch (NumberFormatException e) {
-                    System.err.println("Invalid Tenant ID format in header: " + tenantIdStr);
-                    response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid Tenant ID format");
-                    return;
-                }
-            } else {
-                // For paths like /api/login or /api/register, a Tenant ID might not be needed yet.
-                // You will refine this later to enforce the Tenant ID check on all secured endpoints.
-                System.out.println("Warning: No " + TENANT_HEADER + " header found.");
+        if (tenantIdStr != null && !tenantIdStr.isEmpty()) {
+            try {
+                // --- STEP 2: Parse as UUID (not Long) ---
+                UUID tenantId = UUID.fromString(tenantIdStr);
+
+                // --- STEP 3: Store in Thread-Local Context (now accepts UUID) ---
+                TenantContext.setTenantId(tenantId);
+                
+                System.out.println("TenantIdFilter: Set Tenant ID to " + tenantId);
+
+            } catch (IllegalArgumentException e) {
+                // Catch exception for invalid UUID format
+                System.err.println("Invalid Tenant ID format in header: " + tenantIdStr);
+                // Optionally, you could return an HTTP 400 Bad Request error here
+                // response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                // response.getWriter().write("Invalid Tenant ID format");
+                // return;
             }
-
-            // --- STEP 3: Continue the Filter Chain ---
-            // Allows the request to proceed to Spring Security and controllers
-            filterChain.doFilter(request, response);
-
-        } finally {
-            // --- STEP 4: Cleanup (CRITICAL) ---
-            // Must clear the ID when the request is done to prevent leakage to subsequent requests.
-            TenantContext.clear();
+        } else {
+             // This else block is important for requests that DON'T have a tenant ID,
+             // like the login page itself.
+             System.out.println("TenantIdFilter: No X-Tenant-ID header found.");
         }
+
+        try {
+            // --- STEP 4: Continue the filter chain ---
+            filterChain.doFilter(request, response);
+        } finally {
+            // --- STEP 5: Clear context after request is complete ---
+            TenantContext.clear();
+            System.out.println("TenantIdFilter: Cleared Tenant context.");
+        }
+    }
+
+    /**
+     * This method ensures the filter is NOT applied to the login endpoint,
+     * as the tenant ID is not known until after login.
+     * We will configure this properly in SecurityConfig later.
+     */
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        // Example: Don't filter the login URL
+        // return request.getRequestURI().equals("/api/auth/login");
+        
+        // For now, let's filter all, but be aware we'll need to refine this
+        // for the login page, which won't have the X-Tenant-ID header.
+        
+        // **UPDATE:** The login process (CustomUserDetailsService) sets the tenant ID,
+        // so this filter is actually for *subsequent* requests (after login).
+        // Let's refine this to skip login.
+        
+        String path = request.getRequestURI();
+        return path.equals("/api/auth/login") || path.equals("/api/auth/register");
     }
 }
