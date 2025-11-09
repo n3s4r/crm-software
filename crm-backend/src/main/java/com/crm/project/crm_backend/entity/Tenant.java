@@ -1,43 +1,42 @@
 package com.crm.project.crm_backend.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import java.util.UUID;
 
 /**
- * Tenant: Represents a single, isolated customer/business unit (NFR-001).
- *
- * This table will store the mapping of which ID corresponds to which tenant.
+ * Represents a Tenant (e.g., a company) using the CRM.
+ * This entity's primary key (id) will be the 'tenant_id'
+ * used by all other entities.
  */
 @Entity
 @Table(name = "tenants")
 public class Tenant {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // This is the 'tenant_id' used everywhere
-    
-    private String name; // The name of the company/tenant
-    
-    private String contactEmail;
+    @Column(name = "tenant_id")
+    private UUID tenantId; // Use UUID as the primary key
+
+    @Column(name = "name", nullable = false, unique = true)
+    private String name;
 
     // --- Constructors ---
-    public Tenant() {}
 
-    public Tenant(String name, String contactEmail) {
+    public Tenant() {
+    }
+
+    public Tenant(UUID tenantId, String name) {
+        this.tenantId = tenantId;
         this.name = name;
-        this.contactEmail = contactEmail;
     }
 
     // --- Getters and Setters ---
-    public Long getId() {
-        return id;
+
+    public UUID getTenantId() {
+        return tenantId;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public void setTenantId(UUID tenantId) {
+        this.tenantId = tenantId;
     }
 
     public String getName() {
@@ -46,13 +45,5 @@ public class Tenant {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public String getContactEmail() {
-        return contactEmail;
-    }
-
-    public void setContactEmail(String contactEmail) {
-        this.contactEmail = contactEmail;
     }
 }
