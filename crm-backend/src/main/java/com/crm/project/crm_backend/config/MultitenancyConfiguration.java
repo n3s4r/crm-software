@@ -12,7 +12,7 @@ import org.hibernate.event.spi.PreLoadEvent;
 import org.hibernate.event.spi.PreLoadEventListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
-
+import java.util.UUID;
 /**
  * MultitenancyConfiguration: Ensures the Hibernate Filter is always applied (NFR-001).
  *
@@ -57,7 +57,7 @@ public class MultitenancyConfiguration {
         private void enableTenantFilter(Session session) {
             // Check if the filter is already enabled
             if (session.getEnabledFilter(TenantFilter.TENANT_FILTER_NAME) == null) {
-                Long tenantId = TenantContext.getTenantId();
+                UUID tenantId = TenantContext.getTenantId();
 
                 if (tenantId != null) {
                     // Enable the filter and set the parameter value from the ThreadLocal context
