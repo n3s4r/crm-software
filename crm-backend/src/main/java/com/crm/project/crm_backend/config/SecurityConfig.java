@@ -8,7 +8,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder; // <--- ADD BOTH OF THESE IMPORTS
 /**
  * SecurityConfig: Configuration for Spring Security (NFR-002).
  *
@@ -24,7 +25,13 @@ public class SecurityConfig {
     public SecurityConfig(TenantIdFilter tenantIdFilter) {
         this.tenantIdFilter = tenantIdFilter;
     }
-
+    
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+    	// BCrypt is the industry standard for securely hashing passwords
+        return new BCryptPasswordEncoder();
+    }
+    
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
