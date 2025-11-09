@@ -1,44 +1,53 @@
 package com.crm.project.crm_backend.entity;
 
-import com.crm.project.crm_backend.multitenancy.TenantFilter;
-import jakarta.persistence.Column;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.*;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
 import org.hibernate.annotations.ParamDef;
 
+import java.util.UUID;
+
 /**
- * CRMEntity: Base class for all tenant-specific data (NFR-001).
+ * This is the base class for ALL data entities in the CRM (Contacts, Leads, Tickets, etc.).
+ * It automatically includes:
+ * 1. A primary key (id).
+ * 2. The 'tenant_id' field for multitenancy (using UUID).
+ * 3. The Hibernate Filter definitions that automatically scope queries by tenant.
  *
- * This class applies the Hibernate filter to every query involving inheriting entities,
- * ensuring data isolation between tenants.
+ * By extending this class, new entities (like Contact) automatically
+ * inherit all multitenancy security protections.
  */
-// Mark this class as a superclass whose fields will be included in child tables
 @MappedSuperclass
-// Define the filter name and parameter type/name
-@FilterDef(name = TenantFilter.TENANT_FILTER_NAME,
-           parameters = @ParamDef(name = TenantFilter.TENANT_PARAMETER_NAME, type = Long.class))
-// Apply the filter to this entity, telling Hibernate to filter by tenant_id
-@Filter(name = TenantFilter.TENANT_FILTER_NAME, condition = "tenant_id = :" + TenantFilter.TENANT_PARAMETER_NAME)
+// Define the Hibernate filter
+@FilterDef(name = "tenantFilter", parameters = @ParamDef(name = "tenantId", type = UUID.class))
+// Apply the filter globally to this entity and its children
+@Filter(name = "tenantFilter", condition = "tenant_id = :tenantId")
 public abstract class CRMEntity {
 
-    // This column MUST be present in every child table in the database
-    @Column(name = "tenant_id", nullable = false, updatable = false)
-    protected Long tenantId;
-    
-    // Optional: ManyToOne relationship back to the Tenant entity (good practice)
-    @ManyToOne
-    @JoinColumn(name = "tenant_id", insertable = false, updatable = false)
-    protected Tenant tenant;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    // This is the multitenancy discriminator column.
+    // It MUST match the Tenant's ID type (UUID).
+    @Column(name = "tenant_id", nullable = false)
+    private UUID tenantId;
 
     // --- Getters and Setters ---
-    public Long getTenantId() {
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public UUID getTenantId() {
         return tenantId;
     }
 
-    public void setTenantId(Long tenantId) {
+    public void setTenantId(UUID tenantId) {
         this.tenantId = tenantId;
     }
 }
