@@ -1,53 +1,38 @@
 package com.crm.project.crm_backend.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.*;
+import java.util.UUID;
 
 /**
- * User: Represents a single login with a 1:1 link to a specific tenant (NFR-003).
- *
- * This entity is NOT tenant-isolated via the filter, as we need to find the user
- * by username/password BEFORE we know their tenantId.
+ * Represents an authenticated user of the system.
+ * Each user is directly linked to ONE tenant via the 'tenantId'.
+ * This enforces the "1 person 1 login" and multitenancy link.
+ * * This version includes the 'role' field.
  */
 @Entity
-@Table(name = "users", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"username"}) // Ensures no two users share a username
-})
+@Table(name = "users")
 public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
-    @Column(nullable = false)
-    private String username; // The login ID
-    
-    @Column(nullable = false)
-    private String password; // Hashed password
-    
+
+    @Column(name = "username", nullable = false, unique = true)
+    private String username; // e.g., email address
+
+    @Column(name = "password_hash", nullable = false)
+    private String password; // Will store the BCrypt hash
+
+    // Link to the Tenant. This MUST match the Tenant's ID type.
     @Column(name = "tenant_id", nullable = false)
-    private Long tenantId; // The crucial link to the user's company/tenant (NFR-001)
+    private UUID tenantId;
 
-    // A simple role system for authorization (e.g., ADMIN, SALES_REP)
-    @Column(nullable = false)
-    private String role; 
-
-    // --- Constructors ---
-    public User() {}
-
-    public User(String username, String password, Long tenantId, String role) {
-        this.username = username;
-        this.password = password;
-        this.tenantId = tenantId;
-        this.role = role;
-    }
+    // The 'role' field that was missing
+    @Column(name = "role", nullable = false)
+    private String role; // e.g., "ADMIN", "USER"
 
     // --- Getters and Setters ---
+
     public Long getId() {
         return id;
     }
@@ -72,18 +57,20 @@ public class User {
         this.password = password;
     }
 
-    public Long getTenantId() {
+    public UUID getTenantId() {
         return tenantId;
     }
 
-    public void setTenantId(Long tenantId) {
+    public void setTenantId(UUID tenantId) {
         this.tenantId = tenantId;
     }
 
+    // Getter for the new 'role' field
     public String getRole() {
         return role;
     }
 
+    // Setter for the new 'role' field
     public void setRole(String role) {
         this.role = role;
     }
