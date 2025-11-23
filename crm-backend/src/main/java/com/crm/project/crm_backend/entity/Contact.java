@@ -5,8 +5,10 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 
 /**
- * Represents a Customer Contact.
+ * Represents a Customer Contact or Lead.
  * Extends CRMEntity to automatically inherit the 'id' and 'tenant_id'.
+ *
+ * UPDATED: Includes 'status' to distinguish between LEAD and CUSTOMER.
  */
 @Entity
 @Table(name = "contacts")
@@ -24,6 +26,10 @@ public class Contact extends CRMEntity {
     private String phone;
     private String company;
 
+    // Stores "LEAD" or "CUSTOMER" (or any other status)
+    @Column(nullable = false)
+    private String status = "LEAD"; // Default to LEAD
+
     // --- Getters and Setters ---
     public String getFirstName() { return firstName; }
     public void setFirstName(String firstName) { this.firstName = firstName; }
@@ -39,4 +45,7 @@ public class Contact extends CRMEntity {
 
     public String getCompany() { return company; }
     public void setCompany(String company) { this.company = company; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 }
