@@ -1,38 +1,35 @@
 package com.crm.project.crm_backend.multitenancy;
 
+import java.util.UUID; // <-- IMPORT UUID
+
 /**
- * TenantContext: A thread-local holder for the current Tenant ID.
- *
- * Spring Boot uses a separate thread to handle each incoming web request.
- * This class ensures that the 'tenantId' is isolated to the current request,
- * preventing data mix-ups between different tenants (NFR-001).
- *
- * This implementation uses Long, assuming tenant IDs are numeric primary keys.
+ * This class holds the 'tenantId' for the current request.
+ * It uses a ThreadLocal to ensure tenant data is isolated between concurrent requests.
+ * * This version is updated to use UUID.
  */
 public class TenantContext {
 
-    // ThreadLocal ensures data is only visible to the current thread/request.
-    private static final ThreadLocal<Long> currentTenant = new ThreadLocal<>();
+    // Use UUID instead of Long or String
+    private static final ThreadLocal<UUID> currentTenant = new ThreadLocal<>();
 
     /**
-     * Sets the tenant ID for the current request thread.
-     * @param tenantId The ID of the authenticated tenant.
+     * Sets the tenant ID for the current request.
+     * @param tenantId The UUID of the current tenant.
      */
-    public static void setTenantId(Long tenantId) {
+    public static void setTenantId(UUID tenantId) {
         currentTenant.set(tenantId);
     }
 
     /**
-     * Gets the tenant ID for the current request thread.
-     * @return The current tenant's ID, or null if not set.
+     * Retrieves the tenant ID for the current request.
+     * @return The UUID of the current tenant, or null if not set.
      */
-    public static Long getTenantId() {
+    public static UUID getTenantId() {
         return currentTenant.get();
     }
 
     /**
-     * Clears the tenant ID from the thread after the request is complete.
-     * CRITICAL to avoid data leakage if the thread is reused later.
+     * Clears the tenant ID from the context, typically after the request is completed.
      */
     public static void clear() {
         currentTenant.remove();
